@@ -36,22 +36,31 @@ public class SFTPClient {
         this.port = port;
     }
 
-    public void copy(String source, String target) throws Exception {
+    public String copy(String source, String target) throws Exception {
         ChannelSftp sftpChannel = createSFTPChannel();
         copyInternal(sftpChannel, source, target);
         releaseConnection(sftpChannel);
         LOG.info("Copied files successfully...");
+
+        return target;
     }
 
-    public void copyLatest(String source, String target) throws Exception {
+    public String copyLatest(String source, String target) throws Exception {
         ChannelSftp sftpChannel = createSFTPChannel();
         String latestSource = getLatestSource(sftpChannel, source);
         copyInternal(sftpChannel, latestSource, target);
         releaseConnection(sftpChannel);
         LOG.info("Copied files successfully...");
+
+        return getCopiedFilePath(latestSource, target);
     }
 
-    private static String getLatestSource(ChannelSftp sftpChannel, String source) throws Exception {
+    private String getCopiedFilePath(String latestSource, String target) {
+        String copiedFileName = FilenameUtils.getName(latestSource);
+        return FilenameUtils.concat(target, copiedFileName);
+    }
+
+    private String getLatestSource(ChannelSftp sftpChannel, String source) throws Exception {
         Vector ls = sftpChannel.ls(source);
 
         String basePath = FilenameUtils.getPath(source);
@@ -59,7 +68,7 @@ public class SFTPClient {
             basePath = "/" + basePath;
         }
 
-        LOG.info("Base Path : " + basePath);
+        LOG.fine("Base Path : " + basePath);
         int latestModTime = 0;
         String fileName = FilenameUtils.getBaseName(source);
         for (int i = 0, size = ls.size(); i < size; i++) {
