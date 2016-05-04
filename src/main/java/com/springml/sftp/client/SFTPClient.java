@@ -3,6 +3,8 @@ package com.springml.sftp.client;
 import java.util.Vector;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.FilenameUtils;
+
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
@@ -41,6 +43,37 @@ public class SFTPClient {
         LOG.info("Copied files successfully...");
     }
 
+    public void copyLatest(String source, String target) throws Exception {
+        ChannelSftp sftpChannel = createSFTPChannel();
+        String latestSource = getLatestSource(sftpChannel, source);
+        copyInternal(sftpChannel, latestSource, target);
+        releaseConnection(sftpChannel);
+        LOG.info("Copied files successfully...");
+    }
+
+    private static String getLatestSource(ChannelSftp sftpChannel, String source) throws Exception {
+        Vector ls = sftpChannel.ls(source);
+
+        String basePath = FilenameUtils.getPath(source);
+        if (!basePath.startsWith("/")) {
+            basePath = "/" + basePath;
+        }
+
+        LOG.info("Base Path : " + basePath);
+        int latestModTime = 0;
+        String fileName = FilenameUtils.getBaseName(source);
+        for (int i = 0, size = ls.size(); i < size; i++) {
+            LsEntry entry = (LsEntry) ls.get(i);
+            int modTime = entry.getAttrs().getMTime();
+            if (latestModTime < modTime) {
+                latestModTime = modTime;
+                fileName = entry.getFilename();
+            }
+        }
+
+        return FilenameUtils.concat(basePath, fileName);
+    }
+
     private void copyInternal(ChannelSftp sftpChannel, String source, String target) throws Exception {
         LOG.info("Copying files from " + source + " to " + target);
         try {
@@ -68,7 +101,7 @@ public class SFTPClient {
                     copyInternal(sftpChannel, source + entryName + "/", target);
                 } else {
                     LOG.info("Copying file " + entryName);
-                    sftpChannel.get(entryName, entryName);
+                    sftpChannel.get(entryName, entryName, new ProgressMonitor());
                 }
             }
         }

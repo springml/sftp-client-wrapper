@@ -1,4 +1,4 @@
-# SFT Client Wrapper
+# SFTP Client Wrapper
 A very Simple JAVA Wrapper for SFTP Client
 
 ### Below code should sufficied to copy the files from SFTP Server

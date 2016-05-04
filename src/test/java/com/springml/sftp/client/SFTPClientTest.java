@@ -11,12 +11,17 @@ public class SFTPClientTest {
 
     @Before
     public void setup() {
-        sftpClient = new SFTPClient("/home/sam/Downloads/sml-predictiveapps.pem", "ec2-user", null, "ec2-52-27-55-223.us-west-2.compute.amazonaws.com");
+        sftpClient = new SFTPClient("pem", "user", "password", "host");
     }
 
     @Test
     public void copyTest() throws Exception {
         sftpClient.copy("/home/ec2-user/work/files/csv", "/home/sam/tmp/s");
+    }
+
+    @Test
+    public void copyLatestTest() throws Exception {
+        sftpClient.copyLatest("/home/ec2-user/work/files/csv/sample*", "/home/sam/tmp/s");
     }
 
     @Test
