@@ -1,8 +1,11 @@
 package com.springml.sftp.client;
 
+import java.io.File;
+import java.util.Collection;
 import java.util.Vector;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import com.jcraft.jsch.Channel;
@@ -55,6 +58,25 @@ public class SFTPClient {
         return getCopiedFilePath(latestSource, target);
     }
 
+    public String copyLatestToFTP(String source, String target) throws Exception {
+        ChannelSftp sftpChannel = createSFTPChannel();
+        String latestSource = getLatestLocalSource(source);
+        copyInternalToFTP(sftpChannel, latestSource, target);
+        releaseConnection(sftpChannel);
+        LOG.info("Copied files successfully...");
+
+        return getCopiedFilePath(latestSource, target);
+    }
+
+    public String copyToFTP(String source, String target) throws Exception {
+        ChannelSftp sftpChannel = createSFTPChannel();
+        copyInternalToFTP(sftpChannel, source, target);
+        releaseConnection(sftpChannel);
+        LOG.info("Copied files successfully...");
+
+        return target;
+    }
+
     private String getCopiedFilePath(String latestSource, String target) {
         String copiedFileName = FilenameUtils.getName(latestSource);
         return FilenameUtils.concat(target, copiedFileName);
@@ -77,6 +99,29 @@ public class SFTPClient {
             if (latestModTime < modTime) {
                 latestModTime = modTime;
                 fileName = entry.getFilename();
+            }
+        }
+
+        return FilenameUtils.concat(basePath, fileName);
+    }
+
+    private String getLatestLocalSource(String source) throws Exception {
+        String fileName = FilenameUtils.getBaseName(source);
+        String basePath = FilenameUtils.getPath(source);
+        if (!basePath.startsWith("/")) {
+            basePath = "/" + basePath;
+        }
+
+        File baseDir = new File(basePath);
+        File[] filteredFiles = baseDir.listFiles(new FileNameFilter(fileName));
+
+        LOG.fine("Base Path : " + basePath);
+        long latestModTime = 0;
+        for (int i = 0; i < filteredFiles.length; i++) {
+            long modTime = filteredFiles[i].lastModified();
+            if (latestModTime < modTime) {
+                latestModTime = modTime;
+                fileName = filteredFiles[i].getName();
             }
         }
 
@@ -111,6 +156,39 @@ public class SFTPClient {
                 } else {
                     LOG.info("Copying file " + entryName);
                     sftpChannel.get(entryName, entryName, new ProgressMonitor());
+                }
+            }
+        }
+    }
+
+    private void copyInternalToFTP(ChannelSftp sftpChannel, String source, String target) throws Exception {
+        LOG.info("Copying files from " + source + " to " + target);
+        try {
+            sftpChannel.lcd(source);
+            copyDirToFTP(sftpChannel, source, target);
+        } catch (Exception e) {
+            // Source is a file
+            sftpChannel.put(source, target);
+        }
+    }
+
+    private void copyDirToFTP(ChannelSftp sftpChannel, String source, String target) throws Exception {
+        LOG.info("Copying files from " + source + " to " + target);
+
+        sftpChannel.lcd(source);
+        sftpChannel.cd(target);
+
+        Collection<File> childFiles = FileUtils.listFiles(new File(source), null, false);
+        for (File file : childFiles) {
+            String entryName = file.getName();
+            LOG.fine("File Entry " + entryName);
+
+            if (!entryName.equals(".") && !entryName.equals("..")) {
+                if (file.isDirectory()) {
+                    copyInternalToFTP(sftpChannel, source + entryName + "/", target);
+                } else {
+                    LOG.info("Copying file " + entryName);
+                    sftpChannel.put(entryName, entryName, new ProgressMonitor());
                 }
             }
         }
