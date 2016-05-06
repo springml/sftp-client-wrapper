@@ -13,8 +13,7 @@ public class SFTPClientTest {
 
     @Before
     public void setup() {
-        sftpClient = new SFTPClient("/home/sam/Downloads/sml-predictiveapps.pem", "ec2-user", null, "ec2-52-27-55-223.us-west-2.compute.amazonaws.com");
-//        sftpClient = new SFTPClient("pem", "user", "password", "host");
+        sftpClient = new SFTPClient("pem", "user", "password", "host");
     }
 
     @Test
