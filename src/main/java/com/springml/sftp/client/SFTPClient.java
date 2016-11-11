@@ -1,18 +1,17 @@
 package com.springml.sftp.client;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.Vector;
-import java.util.logging.Logger;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.ChannelSftp.LsEntry;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+
+import java.io.File;
+import java.util.Collection;
+import java.util.Vector;
+import java.util.logging.Logger;
 
 public class SFTPClient {
     private static final Logger LOG = Logger.getLogger(SFTPClient.class.getName());
@@ -26,17 +25,39 @@ public class SFTPClient {
     private String password;
     private String host;
     private int port;
+    private CryptoUtils cryptoUtils;
+    private boolean runCrypto;
 
     public SFTPClient(String identity, String username, String password, String host) {
         this(identity, username, password, host, 22);
     }
 
     public SFTPClient(String identity, String username, String password, String host, int port) {
+        this(identity, username, password, host, port, false, null);
+    }
+
+    public SFTPClient(String identity, String username, String password, String host,
+                      boolean runCrypto, String secretKey) {
+        this(identity, username, password, host, 22, runCrypto, secretKey);
+    }
+
+    public SFTPClient(String identity, String username, String password, String host, int port,
+                      boolean runCrypto, String secretKey) {
+        this(identity, username, password, host, port, runCrypto, secretKey, "AES");
+    }
+
+
+    public SFTPClient(String identity, String username, String password, String host, int port,
+                      boolean runCrypto, String secretKey, String algorithm) {
         this.identity = identity;
         this.username = username;
         this.password = password;
         this.host = host;
         this.port = port;
+        this.runCrypto = runCrypto;
+        if (runCrypto) {
+            this.cryptoUtils = new CryptoUtils(secretKey, algorithm);
+        }
     }
 
     public String copy(String source, String target) throws Exception {
@@ -136,6 +157,7 @@ public class SFTPClient {
         } catch (Exception e) {
             // Source is a file
             sftpChannel.get(source, target);
+            decrypt(target);
         }
     }
 
@@ -156,8 +178,23 @@ public class SFTPClient {
                 } else {
                     LOG.info("Copying file " + entryName);
                     sftpChannel.get(entryName, entryName, new ProgressMonitor());
+                    decrypt(target + File.separator + entryName);
                 }
             }
+        }
+    }
+
+    private void decrypt(String fileLocation) throws Exception {
+        if (runCrypto) {
+            LOG.info("Decrypting " + fileLocation);
+            String tempFileLocation = fileLocation + ".temp";
+            File tempFile = new File(tempFileLocation);
+            File actualFile = new File(fileLocation);
+            FileUtils.moveFile(actualFile, tempFile);
+
+            cryptoUtils.decrypt(tempFile, actualFile);
+
+            FileUtils.deleteQuietly(tempFile);
         }
     }
 
@@ -167,7 +204,9 @@ public class SFTPClient {
             sftpChannel.lcd(source);
             copyDirToFTP(sftpChannel, source, target);
         } catch (Exception e) {
+            e.printStackTrace();
             // Source is a file
+            encrypt(source);
             sftpChannel.put(source, target);
         }
     }
@@ -188,9 +227,24 @@ public class SFTPClient {
                     copyInternalToFTP(sftpChannel, source + entryName + "/", target);
                 } else {
                     LOG.info("Copying file " + entryName);
+                    encrypt(source + File.separator + entryName);
                     sftpChannel.put(entryName, entryName, new ProgressMonitor());
                 }
             }
+        }
+    }
+
+    private void encrypt(String fileLocation) throws Exception {
+        if (runCrypto) {
+            LOG.info("Encrypting " + fileLocation);
+            String tempFileLocation = fileLocation + ".temp";
+            File tempFile = new File(tempFileLocation);
+            File actualFile = new File(fileLocation);
+            FileUtils.moveFile(actualFile, tempFile);
+
+            cryptoUtils.encrypt(tempFile, actualFile);
+
+            FileUtils.deleteQuietly(tempFile);
         }
     }
 

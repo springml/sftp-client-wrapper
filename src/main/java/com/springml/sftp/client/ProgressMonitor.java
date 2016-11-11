@@ -1,18 +1,18 @@
 package com.springml.sftp.client;
 
-import java.util.logging.Logger;
-
 import com.jcraft.jsch.SftpProgressMonitor;
+
+import java.util.logging.Logger;
 
 public class ProgressMonitor implements SftpProgressMonitor {
     private static final Logger LOG = Logger.getLogger(ProgressMonitor.class.getName());
 
     public void init(int op, String src, String dest, long max) {
-        LOG.info("Transfering file of size " + max + " Bytes");
+        LOG.info("Transferring file of size " + max + " Bytes");
     }
 
     public boolean count(long count) {
-        LOG.info("Transfered " + count + " Bytes ...");
+        LOG.info("Transferred " + count + " Bytes ...");
         return true;
     }
 
