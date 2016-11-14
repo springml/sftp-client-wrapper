@@ -1,6 +1,7 @@
 package com.springml.sftp.client;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -8,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Unit test for simple App.
  */
+@Ignore
 public class SFTPClientTest {
     private static final String IDENTITY = null;
     private static final String USERNAME = "user";

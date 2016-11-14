@@ -204,7 +204,6 @@ public class SFTPClient {
             sftpChannel.lcd(source);
             copyDirToFTP(sftpChannel, source, target);
         } catch (Exception e) {
-            e.printStackTrace();
             // Source is a file
             encrypt(source);
             sftpChannel.put(source, target);
