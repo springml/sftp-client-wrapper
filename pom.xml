@@ -4,7 +4,7 @@
 
     <groupId>com.springml</groupId>
     <artifactId>sftp.client</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
 
     <name>Simple SFTP Client Wrapper</name>

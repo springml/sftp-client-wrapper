@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 @Ignore
 public class SFTPClientTest {
     private static final String IDENTITY = null;
+    private static final String PASSPHRASE = null;
     private static final String USERNAME = "user";
     private static final String PASSWORD = "password";
     private static final String HOST = "ftp.ftp.com";
@@ -25,7 +26,8 @@ public class SFTPClientTest {
     @Before
     public void setup() {
         sftpClient = new SFTPClient(IDENTITY, USERNAME, PASSWORD, HOST);
-        cryptoSftpClient = new SFTPClient(IDENTITY, USERNAME, PASSWORD, HOST, PORT, true, KEY, ALGORITHM);
+        cryptoSftpClient = new SFTPClient(IDENTITY, PASSPHRASE, USERNAME, PASSWORD, HOST, PORT,
+                                             true, KEY, ALGORITHM);
     }
 
     @Test

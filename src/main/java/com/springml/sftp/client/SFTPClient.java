@@ -27,34 +27,43 @@ public class SFTPClient {
     private int port;
     private CryptoUtils cryptoUtils;
     private boolean runCrypto;
+    private String passPhrase;
 
     public SFTPClient(String identity, String username, String password, String host) {
         this(identity, username, password, host, 22);
     }
 
     public SFTPClient(String identity, String username, String password, String host, int port) {
-        this(identity, username, password, host, port, false, null);
+        this(identity, null, username, password, host, port, false, null);
     }
 
-    public SFTPClient(String identity, String username, String password, String host,
+    public SFTPClient(String identity, String passPhrase, String username,
+                      String password, String host, int port) {
+        this(identity, passPhrase, username, password, host, port, false, null);
+    }
+
+    public SFTPClient(String identity, String passPhrase, String username, String password,
+                      String host, boolean runCrypto, String secretKey) {
+        this(identity, passPhrase, username, password, host, 22, runCrypto, secretKey);
+    }
+
+    public SFTPClient(String identity, String passPhrase, String username,
+                      String password, String host, int port,
                       boolean runCrypto, String secretKey) {
-        this(identity, username, password, host, 22, runCrypto, secretKey);
-    }
-
-    public SFTPClient(String identity, String username, String password, String host, int port,
-                      boolean runCrypto, String secretKey) {
-        this(identity, username, password, host, port, runCrypto, secretKey, "AES");
+        this(identity, passPhrase, username, password, host, port, runCrypto, secretKey, "AES");
     }
 
 
-    public SFTPClient(String identity, String username, String password, String host, int port,
-                      boolean runCrypto, String secretKey, String algorithm) {
+    public SFTPClient(String identity, String passPhrase, String username, String password,
+                      String host, int port, boolean runCrypto,
+                      String secretKey, String algorithm) {
         this.identity = identity;
         this.username = username;
         this.password = password;
         this.host = host;
         this.port = port;
         this.runCrypto = runCrypto;
+        this.passPhrase = passPhrase;
         if (runCrypto) {
             this.cryptoUtils = new CryptoUtils(secretKey, algorithm);
         }
@@ -150,7 +159,7 @@ public class SFTPClient {
     }
 
     private void copyInternal(ChannelSftp sftpChannel, String source, String target) throws Exception {
-        LOG.info("Copying files from " + source + " to " + target);
+        LOG.info("Copying file from " + source + " to " + target);
         try {
             sftpChannel.cd(source);
             copyDir(sftpChannel, source, target);
@@ -251,7 +260,11 @@ public class SFTPClient {
         JSch jsch = new JSch();
         boolean useIdentity = identity != null && !identity.isEmpty();
         if (useIdentity) {
-            jsch.addIdentity(identity);
+            if (passPhrase != null) {
+                jsch.addIdentity(identity, passPhrase);
+            } else {
+                jsch.addIdentity(identity);
+            }
         }
 
         Session session = jsch.getSession(username, host, port);
